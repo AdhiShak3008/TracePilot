@@ -5,8 +5,10 @@ from datetime import datetime
 
 
 class RetrievedChunk(BaseModel):
+    chunk_id: str
     text: str
     score: float
+    rank: int
 
 
 class Trace(BaseModel):
@@ -16,7 +18,8 @@ class Trace(BaseModel):
     prompt: str
     response: str
     latency: float
-    timestamp: str
+    timestamp: datetime
+    model_name: str
 
     @staticmethod
     def create_id():

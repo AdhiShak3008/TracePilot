@@ -34,7 +34,8 @@ def run_rag_pipeline(query: str):
         prompt=prompt,
         response=response,
         latency=latency,
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.utcnow(),
+        model_name="llama-3.1-8b-instant"
     )
 
     save_trace(trace)
