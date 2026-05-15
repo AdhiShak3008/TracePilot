@@ -23,9 +23,10 @@ def save_trace(trace: Trace):
         response_length,
         chunk_count,
         parent_trace_id,
-        retrieval_quality
+        retrieval_quality,
+        grounded
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         trace.trace_id,
         trace.query,
@@ -39,22 +40,38 @@ def save_trace(trace: Trace):
         trace.response_length,
         trace.chunk_count,
         trace.parent_trace_id,
-        trace.retrieval_quality
+        trace.retrieval_quality,
+        trace.grounded
     ))
 
     conn.commit()
     conn.close()
 
 
-def get_traces():
+def get_traces(retrieval_quality=None):
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-    SELECT * FROM traces
-    ORDER BY timestamp DESC
-    """)
+    if retrieval_quality:
+
+        cursor.execute(
+            """
+            SELECT * FROM traces
+            WHERE retrieval_quality = ?
+            ORDER BY timestamp DESC
+            """,
+            (retrieval_quality,)
+        )
+
+    else:
+
+        cursor.execute(
+            """
+            SELECT * FROM traces
+            ORDER BY timestamp DESC
+            """
+        )
 
     rows = cursor.fetchall()
 
@@ -80,7 +97,8 @@ def get_traces():
             response_length=row["response_length"],
             chunk_count=row["chunk_count"],
             parent_trace_id=row["parent_trace_id"],
-            retrieval_quality=row["retrieval_quality"]
+            retrieval_quality=row["retrieval_quality"],
+            grounded=row["grounded"]
         )
 
         traces.append(trace)
@@ -121,5 +139,6 @@ def get_trace_by_id(trace_id: str):
         response_length=row["response_length"],
         chunk_count=row["chunk_count"],
         parent_trace_id=row["parent_trace_id"],
-        retrieval_quality=row["retrieval_quality"]
+        retrieval_quality=row["retrieval_quality"],
+        grounded=row["grounded"]
     )

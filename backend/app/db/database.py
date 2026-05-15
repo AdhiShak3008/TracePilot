@@ -28,7 +28,8 @@ def init_db():
         response_length INTEGER,
         chunk_count INTEGER,
         parent_trace_id TEXT,
-        retrieval_quality TEXT
+        retrieval_quality TEXT,
+        grounded BOOLEAN
     )
     """)
 

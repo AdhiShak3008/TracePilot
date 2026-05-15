@@ -20,9 +20,11 @@ def run_rag_pipeline(
         2
     )
 
-    if avg_score >= 0.6:
+    top_score = chunks[0]["score"]
+
+    if top_score >= 0.5:
         retrieval_quality = "good"
-    elif avg_score >= 0.4:
+    elif top_score >= 0.3:
         retrieval_quality = "moderate"
     else:
         retrieval_quality = "poor"
@@ -42,6 +44,31 @@ def run_rag_pipeline(
     response = generate_response(prompt)
     latency = round((time.time() - start_time) * 1000, 2)
 
+    response_lower = response.lower()
+
+    stopwords = {
+        "the", "is", "a", "an", "to", "of",
+        "and", "in", "on", "for", "what", "best", "how"
+    }
+
+    response_words = set(response.lower().split())
+
+    grounded = False
+
+    for chunk in chunks:
+
+        chunk_words = {
+            word
+            for word in chunk["text"].lower().split()
+            if word not in stopwords
+        }
+
+        overlap = response_words.intersection(chunk_words)
+
+        if len(overlap) >= 2:
+            grounded = True
+            break
+
     response_length = len(response.split())
     chunk_count = len(chunks)
 
@@ -58,7 +85,8 @@ def run_rag_pipeline(
         response_length=response_length,
         chunk_count=chunk_count,
         parent_trace_id=parent_trace_id,
-        retrieval_quality=retrieval_quality
+        retrieval_quality=retrieval_quality,
+        grounded=grounded
     )
 
     save_trace(trace)

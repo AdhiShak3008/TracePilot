@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from app.db.database import init_db
 from app.pipelines.rag_pipeline import run_rag_pipeline
 from app.tracing.trace_manager import get_traces, get_trace_by_id
+from app.analytics.failure_detector import detect_failures
 
 app = FastAPI()
 
@@ -22,10 +23,18 @@ def ask_question(request: QueryRequest):
     return trace
 
 
-@app.get("/traces")
-def get_all_traces():
+@app.get("/analytics/failures")
+def get_failures():
 
-    return get_traces()
+    return detect_failures()
+
+
+@app.get("/traces")
+def get_all_traces(
+    retrieval_quality: str | None = None
+):
+
+    return get_traces(retrieval_quality)
 
 
 @app.get("/traces/compare")

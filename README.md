@@ -10,11 +10,13 @@ A RAG (Retrieval-Augmented Generation) observability platform. TracePilot traces
 - Retrieves relevant chunks from a local knowledge base using keyword scoring
 - Assigns each chunk a `chunk_id` and `rank` for retrieval provenance
 - Builds a prompt and generates a response via an LLM (Groq / llama-3.1-8b-instant)
-- Classifies retrieval quality as `good`, `moderate`, or `poor` based on average score
+- Classifies retrieval quality as `good`, `moderate`, or `poor` based on top chunk score
+- Checks groundedness via stopword-filtered word overlap between response and retrieved chunks
 - Records the full trace: query, retrieved chunks, prompt, response, latency, model, timestamp, and metrics
 - Persists traces to SQLite
 - Exposes endpoints to fetch, replay, and compare traces
 - Replay traces are linked to their origin via `parent_trace_id`
+- Detects failure patterns via the analytics layer
 
 ---
 
@@ -24,6 +26,7 @@ A RAG (Retrieval-Augmented Generation) observability platform. TracePilot traces
 TracePilot/
 ├── backend/
 │   ├── app/
+│   │   ├── analytics/          # Failure detection and analytics
 │   │   ├── api/routes/         # FastAPI route definitions
 │   │   ├── core/               # Config, logging, telemetry, LLM client
 │   │   ├── db/                 # SQLite connection and schema init
@@ -80,17 +83,28 @@ TracePilot/
 | response_length | int | Word count of the LLM response |
 | chunk_count | int | Number of chunks retrieved |
 | parent_trace_id | str or None | ID of the original trace if this is a replay |
-| retrieval_quality | str | Heuristic quality label: `good`, `moderate`, or `poor` |
+| retrieval_quality | str | Quality label based on top chunk score: `good`, `moderate`, or `poor` |
+| grounded | bool | Whether the response overlaps meaningfully with retrieved chunks |
 
 ---
 
 ## Retrieval Quality Heuristic
 
-| Score Range | Label |
+Based on the top-ranked chunk's score:
+
+| Top Score | Label |
 |---|---|
-| >= 0.6 | good |
-| >= 0.4 | moderate |
-| < 0.4 | poor |
+| >= 0.5 | good |
+| >= 0.3 | moderate |
+| < 0.3 | poor |
+
+---
+
+## Groundedness Heuristic
+
+Stopword-filtered word overlap between the response and each retrieved chunk. A trace is marked `grounded = true` if at least 2 non-stopword words from any chunk appear in the response.
+
+Stopwords filtered: `the`, `is`, `a`, `an`, `to`, `of`, `and`, `in`, `on`, `for`, `what`, `best`, `how`
 
 ---
 
@@ -100,9 +114,11 @@ TracePilot/
 |---|---|---|
 | POST | `/ask` | Run a query through the RAG pipeline |
 | GET | `/traces` | Fetch all traces (newest first) |
+| GET | `/traces?retrieval_quality=good` | Filter traces by retrieval quality |
 | GET | `/traces/compare?trace_id_1=X&trace_id_2=Y` | Compare two traces side by side |
 | GET | `/traces/{trace_id}` | Fetch a single trace by ID |
 | POST | `/traces/{trace_id}/replay` | Replay a trace with the same query |
+| GET | `/analytics/failures` | Detect traces with poor retrieval or high latency |
 
 ### Compare Response Shape
 
@@ -118,6 +134,24 @@ TracePilot/
   }
 }
 ```
+
+### Failure Detection Response Shape
+
+```json
+[
+  {
+    "trace_id": "...",
+    "query": "...",
+    "reasons": ["poor_retrieval", "high_latency"],
+    "latency": 2500.0,
+    "retrieval_quality": "poor"
+  }
+]
+```
+
+Failure conditions:
+- `poor_retrieval` — retrieval quality is `poor`
+- `high_latency` — latency exceeds 2000ms
 
 ---
 
@@ -165,6 +199,9 @@ curl -X POST http://localhost:8000/ask \
 # Fetch all traces
 curl http://localhost:8000/traces
 
+# Filter by retrieval quality
+curl "http://localhost:8000/traces?retrieval_quality=poor"
+
 # Fetch a single trace
 curl http://localhost:8000/traces/<trace_id>
 
@@ -173,6 +210,9 @@ curl -X POST http://localhost:8000/traces/<trace_id>/replay
 
 # Compare two traces
 curl "http://localhost:8000/traces/compare?trace_id_1=<id1>&trace_id_2=<id2>"
+
+# Detect failures
+curl http://localhost:8000/analytics/failures
 ```
 
 ---
@@ -188,5 +228,6 @@ This project uses SQLite with manual schema management. If you add new fields to
 - **Backend** — FastAPI, SQLite, Pydantic
 - **LLM** — Groq API (llama-3.1-8b-instant)
 - **Retrieval** — Keyword scoring (Counter-based BM25-lite)
+- **Analytics** — Custom failure detection layer
 - **Frontend** — React + Vite (in progress)
 - **Tracing** — Custom trace manager with SQLite persistence

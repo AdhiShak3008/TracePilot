@@ -25,6 +25,7 @@ class Trace(BaseModel):
     chunk_count: int
     parent_trace_id: str | None = None
     retrieval_quality: str
+    grounded: bool
 
     @staticmethod
     def create_id():
