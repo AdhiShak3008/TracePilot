@@ -8,10 +8,13 @@ A RAG (Retrieval-Augmented Generation) observability platform. TracePilot traces
 
 - Accepts a natural language query via REST API
 - Retrieves relevant chunks from a local knowledge base using keyword scoring
+- Assigns each chunk a `chunk_id` and `rank` for retrieval provenance
 - Builds a prompt and generates a response via an LLM (Groq / llama-3.1-8b-instant)
-- Records the full trace: query, retrieved chunks, prompt, response, latency, model, timestamp
+- Classifies retrieval quality as `good`, `moderate`, or `poor` based on average score
+- Records the full trace: query, retrieved chunks, prompt, response, latency, model, timestamp, and metrics
 - Persists traces to SQLite
-- Exposes endpoints to fetch and replay any trace
+- Exposes endpoints to fetch, replay, and compare traces
+- Replay traces are linked to their origin via `parent_trace_id`
 
 ---
 
@@ -73,6 +76,21 @@ TracePilot/
 | latency | float | End-to-end latency in ms |
 | timestamp | datetime | UTC time of the trace |
 | model_name | str | LLM model used |
+| retrieval_score_avg | float | Average keyword score across retrieved chunks |
+| response_length | int | Word count of the LLM response |
+| chunk_count | int | Number of chunks retrieved |
+| parent_trace_id | str or None | ID of the original trace if this is a replay |
+| retrieval_quality | str | Heuristic quality label: `good`, `moderate`, or `poor` |
+
+---
+
+## Retrieval Quality Heuristic
+
+| Score Range | Label |
+|---|---|
+| >= 0.6 | good |
+| >= 0.4 | moderate |
+| < 0.4 | poor |
 
 ---
 
@@ -82,8 +100,24 @@ TracePilot/
 |---|---|---|
 | POST | `/ask` | Run a query through the RAG pipeline |
 | GET | `/traces` | Fetch all traces (newest first) |
+| GET | `/traces/compare?trace_id_1=X&trace_id_2=Y` | Compare two traces side by side |
 | GET | `/traces/{trace_id}` | Fetch a single trace by ID |
 | POST | `/traces/{trace_id}/replay` | Replay a trace with the same query |
+
+### Compare Response Shape
+
+```json
+{
+  "trace_1": { "trace_id", "model_name", "latency", "retrieval_score_avg", "response_length", "chunk_count" },
+  "trace_2": { "trace_id", "model_name", "latency", "retrieval_score_avg", "response_length", "chunk_count" },
+  "differences": {
+    "latency_delta": float,
+    "retrieval_score_delta": float,
+    "response_length_delta": int,
+    "response_changed": bool
+  }
+}
+```
 
 ---
 
@@ -120,13 +154,32 @@ The API will be available at `http://localhost:8000`.
 
 ---
 
-## Example Request
+## Example Requests
 
 ```bash
+# Ask a question
 curl -X POST http://localhost:8000/ask \
   -H "Content-Type: application/json" \
   -d '{"query": "What is the best time to visit Tawang?"}'
+
+# Fetch all traces
+curl http://localhost:8000/traces
+
+# Fetch a single trace
+curl http://localhost:8000/traces/<trace_id>
+
+# Replay a trace
+curl -X POST http://localhost:8000/traces/<trace_id>/replay
+
+# Compare two traces
+curl "http://localhost:8000/traces/compare?trace_id_1=<id1>&trace_id_2=<id2>"
 ```
+
+---
+
+## Schema Migration Note
+
+This project uses SQLite with manual schema management. If you add new fields to the `Trace` model, delete `tracepilot.db` and restart the server — `init_db()` will recreate the table with the updated schema.
 
 ---
 
