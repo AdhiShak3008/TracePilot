@@ -26,7 +26,9 @@ def init_db():
         model_name TEXT,
         retrieval_score_avg REAL,
         response_length INTEGER,
-        chunk_count INTEGER
+        chunk_count INTEGER,
+        parent_trace_id TEXT,
+        retrieval_quality TEXT
     )
     """)
 

@@ -21,9 +21,11 @@ def save_trace(trace: Trace):
         model_name,
         retrieval_score_avg,
         response_length,
-        chunk_count
+        chunk_count,
+        parent_trace_id,
+        retrieval_quality
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         trace.trace_id,
         trace.query,
@@ -35,7 +37,9 @@ def save_trace(trace: Trace):
         trace.model_name,
         trace.retrieval_score_avg,
         trace.response_length,
-        trace.chunk_count
+        trace.chunk_count,
+        trace.parent_trace_id,
+        trace.retrieval_quality
     ))
 
     conn.commit()
@@ -74,7 +78,9 @@ def get_traces():
             model_name=row["model_name"],
             retrieval_score_avg=row["retrieval_score_avg"],
             response_length=row["response_length"],
-            chunk_count=row["chunk_count"]
+            chunk_count=row["chunk_count"],
+            parent_trace_id=row["parent_trace_id"],
+            retrieval_quality=row["retrieval_quality"]
         )
 
         traces.append(trace)
@@ -113,5 +119,7 @@ def get_trace_by_id(trace_id: str):
         model_name=row["model_name"],
         retrieval_score_avg=row["retrieval_score_avg"],
         response_length=row["response_length"],
-        chunk_count=row["chunk_count"]
+        chunk_count=row["chunk_count"],
+        parent_trace_id=row["parent_trace_id"],
+        retrieval_quality=row["retrieval_quality"]
     )

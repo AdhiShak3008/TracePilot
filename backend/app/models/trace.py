@@ -23,6 +23,8 @@ class Trace(BaseModel):
     retrieval_score_avg: float
     response_length: int
     chunk_count: int
+    parent_trace_id: str | None = None
+    retrieval_quality: str
 
     @staticmethod
     def create_id():

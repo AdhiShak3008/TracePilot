@@ -6,7 +6,10 @@ from app.models.trace import Trace, RetrievedChunk
 from app.tracing.trace_manager import save_trace
 
 
-def run_rag_pipeline(query: str):
+def run_rag_pipeline(
+    query: str,
+    parent_trace_id: str | None = None
+):
 
     start_time = time.time()
 
@@ -16,6 +19,13 @@ def run_rag_pipeline(query: str):
         sum(chunk["score"] for chunk in chunks) / len(chunks),
         2
     )
+
+    if avg_score >= 0.6:
+        retrieval_quality = "good"
+    elif avg_score >= 0.4:
+        retrieval_quality = "moderate"
+    else:
+        retrieval_quality = "poor"
 
     context = "\n".join([chunk["text"] for chunk in chunks])
 
@@ -46,7 +56,9 @@ def run_rag_pipeline(query: str):
         model_name="llama-3.1-8b-instant",
         retrieval_score_avg=avg_score,
         response_length=response_length,
-        chunk_count=chunk_count
+        chunk_count=chunk_count,
+        parent_trace_id=parent_trace_id,
+        retrieval_quality=retrieval_quality
     )
 
     save_trace(trace)

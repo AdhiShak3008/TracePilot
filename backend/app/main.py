@@ -80,7 +80,10 @@ def replay_trace(trace_id: str):
     if isinstance(trace, dict):
         raise HTTPException(status_code=404, detail="Trace not found")
 
-    replayed_trace = run_rag_pipeline(trace.query)
+    replayed_trace = run_rag_pipeline(
+        trace.query,
+        parent_trace_id=trace.trace_id
+    )
 
     return {
         "original_trace_id": trace.trace_id,
