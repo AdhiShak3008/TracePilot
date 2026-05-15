@@ -28,6 +28,44 @@ def get_all_traces():
     return get_traces()
 
 
+@app.get("/traces/compare")
+def compare_traces(trace_id_1: str, trace_id_2: str):
+
+    trace_1 = get_trace_by_id(trace_id_1)
+    trace_2 = get_trace_by_id(trace_id_2)
+
+    if isinstance(trace_1, dict):
+        raise HTTPException(status_code=404, detail="First trace not found")
+
+    if isinstance(trace_2, dict):
+        raise HTTPException(status_code=404, detail="Second trace not found")
+
+    return {
+        "trace_1": {
+            "trace_id": trace_1.trace_id,
+            "model_name": trace_1.model_name,
+            "latency": trace_1.latency,
+            "retrieval_score_avg": trace_1.retrieval_score_avg,
+            "response_length": trace_1.response_length,
+            "chunk_count": trace_1.chunk_count
+        },
+        "trace_2": {
+            "trace_id": trace_2.trace_id,
+            "model_name": trace_2.model_name,
+            "latency": trace_2.latency,
+            "retrieval_score_avg": trace_2.retrieval_score_avg,
+            "response_length": trace_2.response_length,
+            "chunk_count": trace_2.chunk_count
+        },
+        "differences": {
+            "latency_delta": round(trace_2.latency - trace_1.latency, 2),
+            "retrieval_score_delta": round(trace_2.retrieval_score_avg - trace_1.retrieval_score_avg, 2),
+            "response_length_delta": trace_2.response_length - trace_1.response_length,
+            "response_changed": trace_1.response != trace_2.response
+        }
+    }
+
+
 @app.get("/traces/{trace_id}")
 def fetch_trace(trace_id: str):
 

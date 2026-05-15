@@ -12,6 +12,11 @@ def run_rag_pipeline(query: str):
 
     chunks = retrieve_chunks(query)
 
+    avg_score = round(
+        sum(chunk["score"] for chunk in chunks) / len(chunks),
+        2
+    )
+
     context = "\n".join([chunk["text"] for chunk in chunks])
 
     prompt = f"""
@@ -27,6 +32,9 @@ def run_rag_pipeline(query: str):
     response = generate_response(prompt)
     latency = round((time.time() - start_time) * 1000, 2)
 
+    response_length = len(response.split())
+    chunk_count = len(chunks)
+
     trace = Trace(
         trace_id=Trace.create_id(),
         query=query,
@@ -35,7 +43,10 @@ def run_rag_pipeline(query: str):
         response=response,
         latency=latency,
         timestamp=datetime.utcnow(),
-        model_name="llama-3.1-8b-instant"
+        model_name="llama-3.1-8b-instant",
+        retrieval_score_avg=avg_score,
+        response_length=response_length,
+        chunk_count=chunk_count
     )
 
     save_trace(trace)

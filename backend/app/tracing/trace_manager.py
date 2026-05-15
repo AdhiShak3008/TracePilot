@@ -18,9 +18,12 @@ def save_trace(trace: Trace):
         response,
         latency,
         timestamp,
-        model_name
+        model_name,
+        retrieval_score_avg,
+        response_length,
+        chunk_count
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         trace.trace_id,
         trace.query,
@@ -29,7 +32,10 @@ def save_trace(trace: Trace):
         trace.response,
         trace.latency,
         trace.timestamp,
-        trace.model_name
+        trace.model_name,
+        trace.retrieval_score_avg,
+        trace.response_length,
+        trace.chunk_count
     ))
 
     conn.commit()
@@ -65,7 +71,10 @@ def get_traces():
             response=row["response"],
             latency=row["latency"],
             timestamp=row["timestamp"],
-            model_name=row["model_name"]
+            model_name=row["model_name"],
+            retrieval_score_avg=row["retrieval_score_avg"],
+            response_length=row["response_length"],
+            chunk_count=row["chunk_count"]
         )
 
         traces.append(trace)
@@ -101,5 +110,8 @@ def get_trace_by_id(trace_id: str):
         response=row["response"],
         latency=row["latency"],
         timestamp=row["timestamp"],
-        model_name=row["model_name"]
+        model_name=row["model_name"],
+        retrieval_score_avg=row["retrieval_score_avg"],
+        response_length=row["response_length"],
+        chunk_count=row["chunk_count"]
     )

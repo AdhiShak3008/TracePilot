@@ -20,6 +20,9 @@ class Trace(BaseModel):
     latency: float
     timestamp: datetime
     model_name: str
+    retrieval_score_avg: float
+    response_length: int
+    chunk_count: int
 
     @staticmethod
     def create_id():

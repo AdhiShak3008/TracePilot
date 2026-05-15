@@ -23,7 +23,10 @@ def init_db():
         response TEXT,
         latency REAL,
         timestamp TEXT,
-        model_name TEXT
+        model_name TEXT,
+        retrieval_score_avg REAL,
+        response_length INTEGER,
+        chunk_count INTEGER
     )
     """)
 
