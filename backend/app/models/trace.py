@@ -26,6 +26,9 @@ class Trace(BaseModel):
     parent_trace_id: str | None = None
     retrieval_quality: str
     grounded: bool
+    top_retrieval_score: float = 0.0
+    spans: list = []
+    failure_types: list = []
 
     @staticmethod
     def create_id():

@@ -24,9 +24,12 @@ def save_trace(trace: Trace):
         chunk_count,
         parent_trace_id,
         retrieval_quality,
-        grounded
+        grounded,
+        top_retrieval_score,
+        spans,
+        failure_types
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         trace.trace_id,
         trace.query,
@@ -34,14 +37,17 @@ def save_trace(trace: Trace):
         trace.prompt,
         trace.response,
         trace.latency,
-        trace.timestamp,
+        str(trace.timestamp),
         trace.model_name,
         trace.retrieval_score_avg,
         trace.response_length,
         trace.chunk_count,
         trace.parent_trace_id,
         trace.retrieval_quality,
-        trace.grounded
+        trace.grounded,
+        trace.top_retrieval_score,
+        json.dumps(trace.spans),
+        json.dumps(trace.failure_types)
     ))
 
     conn.commit()
@@ -98,7 +104,10 @@ def get_traces(retrieval_quality=None):
             chunk_count=row["chunk_count"],
             parent_trace_id=row["parent_trace_id"],
             retrieval_quality=row["retrieval_quality"],
-            grounded=row["grounded"]
+            grounded=row["grounded"],
+            top_retrieval_score=row["top_retrieval_score"],
+            spans=json.loads(row["spans"] or "[]"),
+            failure_types=json.loads(row["failure_types"] or "[]")
         )
 
         traces.append(trace)
@@ -140,5 +149,46 @@ def get_trace_by_id(trace_id: str):
         chunk_count=row["chunk_count"],
         parent_trace_id=row["parent_trace_id"],
         retrieval_quality=row["retrieval_quality"],
-        grounded=row["grounded"]
+        grounded=row["grounded"],
+        top_retrieval_score=row["top_retrieval_score"],
+        spans=json.loads(row["spans"] or "[]"),
+        failure_types=json.loads(row["failure_types"] or "[]")
     )
+
+
+def get_trace(trace_id: str) -> dict | None:
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT * FROM traces
+    WHERE trace_id = ?
+    """, (trace_id,))
+
+    row = cursor.fetchone()
+
+    conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "trace_id": row["trace_id"],
+        "query": row["query"],
+        "retrieved_chunks": json.loads(row["retrieved_chunks"]),
+        "prompt": row["prompt"],
+        "response": row["response"],
+        "latency": row["latency"],
+        "timestamp": row["timestamp"],
+        "model_name": row["model_name"],
+        "retrieval_score_avg": row["retrieval_score_avg"],
+        "response_length": row["response_length"],
+        "chunk_count": row["chunk_count"],
+        "parent_trace_id": row["parent_trace_id"],
+        "retrieval_quality": row["retrieval_quality"],
+        "grounded": row["grounded"],
+        "top_retrieval_score": row["top_retrieval_score"],
+        "spans": json.loads(row["spans"] or "[]"),
+        "failure_types": json.loads(row["failure_types"] or "[]")
+    }

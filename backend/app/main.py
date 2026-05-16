@@ -2,8 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.db.database import init_db
-from app.pipelines.rag_pipeline import run_rag_pipeline
+from app.pipelines.pipeline_runner import PipelineRunner
 from app.tracing.trace_manager import get_traces, get_trace_by_id
+from app.tracing.replay import replay_trace as run_replay
 from app.analytics.failure_detector import detect_failures
 
 app = FastAPI()
@@ -18,9 +19,9 @@ class QueryRequest(BaseModel):
 @app.post("/ask")
 def ask_question(request: QueryRequest):
 
-    trace = run_rag_pipeline(request.query)
+    runner = PipelineRunner()
 
-    return trace
+    return runner.run(request.query)
 
 
 @app.get("/analytics/failures")
@@ -82,21 +83,11 @@ def fetch_trace(trace_id: str):
 
 
 @app.post("/traces/{trace_id}/replay")
-def replay_trace(trace_id: str):
+def replay_trace_endpoint(trace_id: str):
 
-    trace = get_trace_by_id(trace_id)
+    result = run_replay(trace_id)
 
-    if isinstance(trace, dict):
-        raise HTTPException(status_code=404, detail="Trace not found")
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
 
-    replayed_trace = run_rag_pipeline(
-        trace.query,
-        parent_trace_id=trace.trace_id
-    )
-
-    return {
-        "original_trace_id": trace.trace_id,
-        "replayed_trace_id": replayed_trace.trace_id,
-        "original_response": trace.response,
-        "replayed_response": replayed_trace.response,
-    }
+    return result

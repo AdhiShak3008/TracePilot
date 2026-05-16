@@ -29,7 +29,10 @@ def init_db():
         chunk_count INTEGER,
         parent_trace_id TEXT,
         retrieval_quality TEXT,
-        grounded BOOLEAN
+        grounded BOOLEAN,
+        top_retrieval_score REAL,
+        spans TEXT,
+        failure_types TEXT
     )
     """)
 
