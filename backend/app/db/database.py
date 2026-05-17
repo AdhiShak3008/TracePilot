@@ -32,7 +32,8 @@ def init_db():
         grounded BOOLEAN,
         top_retrieval_score REAL,
         spans TEXT,
-        failure_types TEXT
+        failure_types TEXT,
+        prompt_mode TEXT DEFAULT 'strict'
     )
     """)
 

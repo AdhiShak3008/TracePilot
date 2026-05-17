@@ -27,9 +27,10 @@ def save_trace(trace: Trace):
         grounded,
         top_retrieval_score,
         spans,
-        failure_types
+        failure_types,
+        prompt_mode
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         trace.trace_id,
         trace.query,
@@ -47,7 +48,8 @@ def save_trace(trace: Trace):
         trace.grounded,
         trace.top_retrieval_score,
         json.dumps(trace.spans),
-        json.dumps(trace.failure_types)
+        json.dumps(trace.failure_types),
+        trace.prompt_mode
     ))
 
     conn.commit()
@@ -107,7 +109,8 @@ def get_traces(retrieval_quality=None):
             grounded=row["grounded"],
             top_retrieval_score=row["top_retrieval_score"],
             spans=json.loads(row["spans"] or "[]"),
-            failure_types=json.loads(row["failure_types"] or "[]")
+            failure_types=json.loads(row["failure_types"] or "[]"),
+            prompt_mode=row["prompt_mode"] or "strict"
         )
 
         traces.append(trace)
@@ -152,7 +155,8 @@ def get_trace_by_id(trace_id: str):
         grounded=row["grounded"],
         top_retrieval_score=row["top_retrieval_score"],
         spans=json.loads(row["spans"] or "[]"),
-        failure_types=json.loads(row["failure_types"] or "[]")
+        failure_types=json.loads(row["failure_types"] or "[]"),
+        prompt_mode=row["prompt_mode"] or "strict"
     )
 
 

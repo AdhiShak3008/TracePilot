@@ -23,6 +23,7 @@ init_db()
 
 class QueryRequest(BaseModel):
     query: str
+    prompt_mode: str = "strict"
 
 
 @app.post("/ask")
@@ -30,7 +31,7 @@ def ask_question(request: QueryRequest):
 
     runner = PipelineRunner()
 
-    return runner.run(request.query)
+    return runner.run(request.query, prompt_mode=request.prompt_mode)
 
 
 @app.get("/analytics/failures")

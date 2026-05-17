@@ -27,6 +27,7 @@ class Trace(BaseModel):
     retrieval_quality: str
     grounded: bool
     top_retrieval_score: float = 0.0
+    prompt_mode: str = "strict"
     spans: list = []
     failure_types: list = []
 

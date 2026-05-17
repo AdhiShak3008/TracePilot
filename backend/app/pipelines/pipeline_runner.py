@@ -16,7 +16,7 @@ class PipelineRunner:
 
         self.evaluator = Evaluator()
 
-    def run(self, query, parent_trace_id=None):
+    def run(self, query, parent_trace_id=None, prompt_mode="strict"):
 
         trace_id = str(uuid.uuid4())
 
@@ -27,9 +27,7 @@ class PipelineRunner:
         # --- Retrieval Span ---
 
         retrieval_span = ExecutionSpan(
-            trace_id=trace_id,
-            span_type="retrieval",
-            input_payload={"query": query}
+            trace_id=trace_id, span_type="retrieval", input_payload={"query": query}
         )
 
         chunks = retrieve_chunks(query)
@@ -42,7 +40,8 @@ class PipelineRunner:
 
         avg_score = (
             round(sum(chunk["score"] for chunk in chunks) / len(chunks), 2)
-            if chunks else 0
+            if chunks
+            else 0
         )
 
         top_score = chunks[0]["score"] if chunks else 0
@@ -56,12 +55,9 @@ class PipelineRunner:
 
         # --- Prompt Span ---
 
-        prompt_span = ExecutionSpan(
-            trace_id=trace_id,
-            span_type="prompt_build"
-        )
+        prompt_span = ExecutionSpan(trace_id=trace_id, span_type="prompt_build")
 
-        prompt = build_prompt(query, chunks)
+        prompt = build_prompt(query, chunks, mode=prompt_mode)
 
         prompt_span.finish({"prompt_length": len(prompt)})
 
@@ -69,10 +65,7 @@ class PipelineRunner:
 
         # --- Generation Span ---
 
-        generation_span = ExecutionSpan(
-            trace_id=trace_id,
-            span_type="generation"
-        )
+        generation_span = ExecutionSpan(trace_id=trace_id, span_type="generation")
 
         response = generate_response(prompt)
 
@@ -82,10 +75,7 @@ class PipelineRunner:
 
         # --- Evaluation Span ---
 
-        evaluation_span = ExecutionSpan(
-            trace_id=trace_id,
-            span_type="evaluation"
-        )
+        evaluation_span = ExecutionSpan(trace_id=trace_id, span_type="evaluation")
 
         evaluation = self.evaluator.evaluate(query, response, chunks)
 
@@ -95,9 +85,7 @@ class PipelineRunner:
 
         # --- Latency ---
 
-        latency = round(
-            (datetime.utcnow() - start_time).total_seconds() * 1000, 2
-        )
+        latency = round((datetime.utcnow() - start_time).total_seconds() * 1000, 2)
 
         # --- Failure Classification ---
 
@@ -149,6 +137,7 @@ class PipelineRunner:
             retrieval_score_avg=avg_score,
             response_length=len(response.split()),
             chunk_count=len(chunks),
+            prompt_mode=prompt_mode,
             parent_trace_id=parent_trace_id,
             retrieval_quality=retrieval_quality,
             grounded=evaluation["grounded"],
